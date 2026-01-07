@@ -1,10 +1,8 @@
-//import { coreURL } from "@ffmpeg/core?url";
-// import wasmURL from "@ffmpeg/core/wasm?url";
-
+import "./css/editor.css";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { useRef, useState } from "react";
-import VideoInput from "./VideoInput";
+import { useRef, useState, useEffect } from "react";
+import VideoInput from "./components/VideoInput";
 
 export function App() {
   const [loaded, setLoaded] = useState(false);
@@ -17,28 +15,33 @@ export function App() {
   function GetblobUrl(url: string) {
     setbloburl(url);
   }
+  useEffect(() => {
+    async function load() {
+      const baseURL =
+        "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm";
+      const ffmpeg = ffmpegRef.current;
 
-  const load = async () => {
-    const baseURL =
-      "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm";
-    const ffmpeg = ffmpegRef.current;
+      ffmpeg.on("log", ({ message }) => {
+        messageRef.current.innerHTML = message;
+        console.log(message);
+      });
+      // toBlobURL is used to bypass CORS issue, urls with the same
+      // domain can be used directly.
+      await ffmpeg.load({
+        coreURL: await toBlobURL(
+          `${baseURL}/ffmpeg-core.js`,
+          "text/javascript"
+        ),
+        wasmURL: await toBlobURL(
+          `${baseURL}/ffmpeg-core.wasm`,
+          "application/wasm"
+        ),
+      });
 
-    ffmpeg.on("log", ({ message }) => {
-      messageRef.current.innerHTML = message;
-      console.log(message);
-    });
-    // toBlobURL is used to bypass CORS issue, urls with the same
-    // domain can be used directly.
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.wasm`,
-        "application/wasm"
-      ),
-    });
-
-    setLoaded(true);
-  };
+      setLoaded(true);
+    }
+    load();
+  }, []);
 
   const transcode = async () => {
     const ffmpeg = ffmpegRef.current;
@@ -49,9 +52,9 @@ export function App() {
     //"-i", inputFileName, "-ss", `${minTime}`, "-to", `${maxTime}`, "-f", "gif", outputFileName
     await ffmpeg.exec([
       "-ss",
-      "00:01:00",
+      "00:00:50",
       "-to",
-      "00:02:00",
+      "00:01:30",
       "-i",
       "input.mp4",
       "-c",
@@ -69,18 +72,19 @@ export function App() {
 
   return loaded ? (
     <>
-      <div className="App">
+      <div className="editor">
         <h1>Video upload</h1>
-        <VideoInput GetblobUrl={GetblobUrl} />
+        <VideoInput videoRefToChiled={videoRef} GetblobUrl={GetblobUrl} />
+
+        <video height={400} width={600} ref={videoRef} controls></video>
+        <br />
+        <button onClick={transcode}>cut video</button>
+        <p ref={messageRef}></p>
       </div>
-      <video ref={videoRef} controls></video>
-      <br />
-      <button onClick={transcode}>cut video</button>
-      <p ref={messageRef}></p>
-      <p>Open Developer Tools (Ctrl+Shift+I) to View Logs</p>
     </>
   ) : (
-    <button onClick={load}>Load ffmpeg-core (~31 MB)</button>
+    //<button onClick={load}>Load ffmpeg-core (~31 MB)</button>
+  <div>Loading ffmpeg in memory...</div>
   );
 }
 

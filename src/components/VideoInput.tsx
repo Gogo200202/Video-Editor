@@ -1,17 +1,16 @@
 import React, { useRef, useState } from "react";
 
 export default function VideoInput(props: any) {
-  const {GetblobUrl } = props;
+  const { GetblobUrl, videoRefToChiled } = props;
 
   const inputRef: any = useRef("");
-
-
 
   const handleFileChange = (event: any) => {
     const file = event.target.files[0];
     const url = URL.createObjectURL(file);
     GetblobUrl(url);
-    
+
+    videoRefToChiled.current.src = url;
   };
 
   const handleChoose = (event: any) => {
@@ -27,7 +26,6 @@ export default function VideoInput(props: any) {
         onChange={handleFileChange}
         accept=".mov,.mp4"
       />
-     
     </div>
   );
 }
